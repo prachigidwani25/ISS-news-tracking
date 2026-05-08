@@ -40,15 +40,6 @@ const ISSPage = () => {
   } = useDashboard();
   const { isDarkMode } = useTheme();
 
-  if (issLoading && !issData) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh]">
-        <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-slate-500 font-medium">Connecting to ISS...</p>
-      </div>
-    );
-  }
-
   // Velocity Chart Data
   const velocityChartData = {
     labels: issHistory.map(d => new Date(d.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })),
@@ -107,7 +98,12 @@ const ISSPage = () => {
         </button>
       </div>
 
-      {issData ? (
+      {issLoading && !issData ? (
+        <div className="flex flex-col items-center justify-center h-[40vh] bg-slate-100 dark:bg-slate-900 rounded-3xl animate-pulse">
+           <div className="w-10 h-10 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+           <p className="text-slate-500">Establishing Satellite Link...</p>
+        </div>
+      ) : issData ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

@@ -71,14 +71,11 @@ export const DashboardProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    const init = async () => {
-      await Promise.allSettled([
-        updateISS(),
-        updateNews(),
-        fetchAstronauts().then(setAstros)
-      ]);
-    };
-    init();
+    // Start all fetches in parallel without blocking the UI
+    updateISS();
+    updateNews();
+    fetchAstronauts().then(setAstros);
+
     const interval = setInterval(updateISS, 15000);
     return () => clearInterval(interval);
   }, []);
