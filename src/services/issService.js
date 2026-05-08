@@ -1,15 +1,28 @@
 import axios from 'axios';
 
-// Using Vite proxy to avoid Mixed Content (HTTP) and CORS issues with Open Notify
-const ISS_BASE_URL = '/api-iss/iss-now.json';
-const ASTROS_URL = '/api-iss/astros.json';
+// Use local proxy for dev, and a CORS proxy for production/deployed site
+const IS_PROD = import.meta.env.PROD;
+const ISS_BASE_URL = IS_PROD 
+  ? `https://api.allorigins.win/raw?url=${encodeURIComponent('http://api.open-notify.org/iss-now.json')}`
+  : '/api-iss/iss-now.json';
+
+const ASTROS_URL = IS_PROD
+  ? `https://api.allorigins.win/raw?url=${encodeURIComponent('http://api.open-notify.org/astros.json')}`
+  : '/api-iss/astros.json';
 const REVERSE_GEO_URL = 'https://api.bigdatacloud.net/data/reverse-geocode-client';
 const SECONDARY_ISS_URL = 'https://api.wheretheiss.at/v1/satellites/25544';
 
 export const fetchISSLocation = async () => {
   try {
-    // Attempt Primary (Required) API
-    const response = await axios.get(`${ISS_BASE_URL}?t=${Date.now()}`);
+    // Attempt Primary (Required) API via Proxy
+    const response = await axios.get(ISS_BASE_URL, {
+      headers: { 'Cache-Control': 'no-cache' }
+    });
+    
+    if (!response.data || !response.data.iss_position) {
+      throw new Error('Invalid API Response');
+    }
+
     const { iss_position, timestamp } = response.data;
     return {
       latitude: parseFloat(iss_position.latitude),
@@ -17,21 +30,18 @@ export const fetchISSLocation = async () => {
       timestamp: timestamp
     };
   } catch (error) {
-    // If Primary fails (e.g. 429 Too Many Requests), switch to Secondary silently
-    if (error.response?.status === 429 || error.code === 'ERR_NETWORK') {
-      console.warn('Primary API rate limited. Switching to failover service.');
-      try {
-        const fallbackResponse = await axios.get(SECONDARY_ISS_URL);
-        return {
-          latitude: parseFloat(fallbackResponse.data.latitude),
-          longitude: parseFloat(fallbackResponse.data.longitude),
-          timestamp: fallbackResponse.data.timestamp
-        };
-      } catch (fallbackError) {
-        throw new Error('Both tracking services are currently unavailable.');
-      }
+    // SILENT FAILOVER: If primary fails, use secondary immediately
+    console.warn('Switching to ISS failover service...');
+    try {
+      const fallbackResponse = await axios.get(SECONDARY_ISS_URL);
+      return {
+        latitude: parseFloat(fallbackResponse.data.latitude),
+        longitude: parseFloat(fallbackResponse.data.longitude),
+        timestamp: fallbackResponse.data.timestamp
+      };
+    } catch (fallbackError) {
+      throw new Error('Satellite Tracking Offline');
     }
-    throw error;
   }
 };
 

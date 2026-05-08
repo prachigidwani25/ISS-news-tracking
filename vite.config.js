@@ -9,6 +9,8 @@ export default defineConfig({
       '/api-iss': {
         target: 'http://api.open-notify.org',
         changeOrigin: true,
+        secure: false,
+        ws: true,
         rewrite: (path) => path.replace(/^\/api-iss/, ''),
       },
     },
